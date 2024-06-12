@@ -1,7 +1,14 @@
 -module(jpre).
 
 -export([
-        moras/2
+        moras/1
+      , moras/2
+    ]).
+
+-export_type([
+        opt/0
+      , mora/0
+      , moras/0
     ]).
 
 -on_load(init/0).
@@ -25,6 +32,15 @@ init() ->
     PrivDir = code:priv_dir(?MODULE),
     LibName = "libjpre",
     erlang:load_nif(filename:append(PrivDir, LibName), 0).
+
+-spec moras(unicode:unicode_binary()) -> [moras()].
+moras(Text) ->
+    PrivDir = code:priv_dir(?MODULE),
+    DictPath = filename:append(PrivDir, "naist-jdic"),
+    Opt = #{
+        dict => unicode:characters_to_binary(DictPath)
+    },
+    moras(Text, Opt).
 
 -spec moras(unicode:unicode_binary(), opt()) -> [moras()].
 moras(Arg1, Arg2) ->

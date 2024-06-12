@@ -42,8 +42,24 @@ impl<T> Nullable<T> {
 
 
 #[rustler::nif]
-fn moras(test: String, opt: Opt) -> NifResult<Vec<Mora>> {
-    _ = (test, opt); // todo
+fn moras(text: String, opt: Opt) -> NifResult<Vec<Mora>> {
+    use jpreprocess::*;
+    let config = JPreprocessConfig {
+        dictionary: SystemDictionaryConfig::File(opt.dict.into()),
+        user_dictionary: None,
+    };
+    let jpreprocess = match JPreprocess::from_config(config) {
+        Ok(jpreprocess) => {
+            jpreprocess
+        },
+        Err(_) => {
+            return Err(rustler::error::Error::BadArg);
+        },
+    };
+    let mut njd = jpreprocess.text_to_njd(&text).unwrap();
+    njd.preprocess();
+    println!("{:?}", njd.nodes[0].get_pron().moras[0].mora_enum);
+    println!("{:?}", njd.nodes[0].get_pron().accent);
     Ok(vec![
         Mora{
             text: "あ".to_string(),

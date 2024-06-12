@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-export VOXE_INSTALL_PWD=`pwd`
+JPRE_COMPILE_PWD=`pwd`
 cd `dirname $0`
 
 if [ ! -d ./priv/naist-jdic ]; then
@@ -18,4 +18,4 @@ cargo build --manifest-path=crates/jpre/Cargo.toml --release;
 mv crates/jpre/target/release/libjpre.so priv/.;
 
 
-cd $VOXE_INSTALL_PWD
+cd $JPRE_COMPILE_PWD
