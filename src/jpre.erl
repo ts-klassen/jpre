@@ -1,14 +1,14 @@
 -module(jpre).
 
 -export([
-        moras/1
-      , moras/2
+        accent_phrases/1
+      , accent_phrases/2
     ]).
 
 -export_type([
         opt/0
       , mora/0
-      , moras/0
+      , accent_phrase/0
     ]).
 
 -on_load(init/0).
@@ -26,23 +26,28 @@
       , pitch := number()
     }.
 
--type moras() :: [mora(), ...].
+-type accent_phrase() :: #{
+        moras := [mora()]
+      , accent := non_neg_integer()
+      , pause_mora := null | mora()
+      , is_interrogative := boolean()
+    }.
 
 init() ->
     PrivDir = code:priv_dir(?MODULE),
     LibName = "libjpre",
     erlang:load_nif(filename:append(PrivDir, LibName), 0).
 
--spec moras(unicode:unicode_binary()) -> [moras()].
-moras(Text) ->
+-spec accent_phrases(unicode:unicode_binary()) -> [accent_phrase()].
+accent_phrases(Text) ->
     PrivDir = code:priv_dir(?MODULE),
     DictPath = filename:append(PrivDir, "naist-jdic"),
     Opt = #{
         dict => unicode:characters_to_binary(DictPath)
     },
-    moras(Text, Opt).
+    accent_phrases(Text, Opt).
 
--spec moras(unicode:unicode_binary(), opt()) -> [moras()].
-moras(Arg1, Arg2) ->
+-spec accent_phrases(unicode:unicode_binary(), opt()) -> [accent_phrase()].
+accent_phrases(Arg1, Arg2) ->
     erlang:nif_error(nif_module_unavailable, [Arg1, Arg2]).
 
