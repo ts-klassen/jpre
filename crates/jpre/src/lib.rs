@@ -12,12 +12,12 @@ mod atoms {
     }
 }
 
-#[derive(Debug, NifMap)]
+#[derive(Debug, NifMap, Clone)]
 struct Opt {
     dict: String
 }
 
-#[derive(Debug, NifMap)]
+#[derive(Debug, NifMap, Clone)]
 struct AccentPhrase {
     moras: Vec<Mora>,
     accent: usize,
@@ -27,20 +27,31 @@ impl AccentPhrase {
     fn from_njd(njd: &jpreprocess::NJD) -> Vec<Self> {
         let mut aps: Vec<Self> = Vec::new();
         for node in &njd.nodes {
-            aps.push(Self::from_node(&node));
+            let p_mora = match aps.last() {
+                Some(ap) => {
+                    ap.moras.last()
+                },
+                None => {
+                    None
+                },
+            };
+            aps.push(Self::from_node(&node, p_mora));
         }
         aps
     }
-    fn from_node(node: &jpreprocess_njd::NJDNode) -> Self {
+    fn from_node(
+        node: &jpreprocess_njd::NJDNode,
+        p_mora: Option<&Mora>,
+    ) -> Self {
         let pron = node.get_pron();
         Self {
-            moras: Mora::from_pron(pron),
+            moras: Mora::from_pron(pron, p_mora),
             accent: pron.accent,
         }
     }
 }
 
-#[derive(Debug, NifMap)]
+#[derive(Debug, NifMap, Clone)]
 struct Mora {
     text: String,
     consonant: Nullable<String>,
@@ -51,13 +62,42 @@ struct Mora {
 }
 
 impl Mora {
-    fn from_pron(pron: &pronunciation::Pronunciation) -> Vec<Self> {
+    fn from_pron(
+        pron: &pronunciation::Pronunciation,
+        p_moras: Option<&Self>,
+    ) -> Vec<Self> {
         let mut moras: Vec<Self> = Vec::new();
         for mora in pron.moras.iter() {
-            moras.push(Self::from_mora(mora));
+            let next_mora = match Self::from_mora(mora) {
+                next_mora if next_mora.vowel == "Long".to_string() => {
+                    match (moras.last(), p_moras) {
+                        (Some(m), _) => {
+                            let mut m = m.clone();
+                            m.consonant = Nullable::null();
+                            m.consonant_length = Nullable::null();
+                            m
+                        },
+                        (_, Some(m)) => {
+                            let mut m = m.clone();
+                            m.consonant = Nullable::null();
+                            m.consonant_length = Nullable::null();
+                            m
+                        },
+                        (None, None) => {
+                            // accent_phrase starting with mora "ー"
+                            // should not exist.
+                            // But, jpreprocess sometimes does that.
+                            next_mora
+                        },
+                    }
+                },
+                other => {
+                    other
+                },
+            };
+            moras.push(next_mora);
         }
         moras
-        // vec![Self::from_mora(&pron.moras[0])]
     }
     fn from_mora(mora: &pronunciation::mora::Mora) -> Self {
     use pronunciation::MoraEnum::*;
@@ -220,7 +260,7 @@ impl Mora {
             Xi => {("ィ", "i", Some("x"))},
             A => {("ア", "a", None)},
             Xa => {("ァ", "a", Some("x"))},
-            Long => unreachable!(),
+            Long => {("ー", "Long", None)},
             Gwa => {("グヮ", "a", Some("gw"))},
             Kwa => {("クヮ", "a", Some("kw"))},
             Xwa => {("ヮ", "a", Some("xw"))},
@@ -247,7 +287,7 @@ impl Mora {
     }
 }
 
-#[derive(Debug, NifUntaggedEnum)]
+#[derive(Debug, NifUntaggedEnum, Clone)]
 enum Nullable<T> {
    Null(Atom),
    Value(T),
@@ -271,8 +311,8 @@ fn accent_phrases(text: String, opt: Opt) -> NifResult<Vec<AccentPhrase>> {
     };
     let jpreprocess = JPreprocess::from_config(config).unwrap();
 
-    let njd = jpreprocess.text_to_njd(&text).unwrap();
-    //njd.preprocess(); // not sure if I should do this or not...
+    let mut njd = jpreprocess.text_to_njd(&text).unwrap();
+    njd.preprocess(); // not sure if I should do this or not...
 
     Ok(AccentPhrase::from_njd(&njd))
 }
