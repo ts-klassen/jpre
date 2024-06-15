@@ -21,6 +21,8 @@ struct Opt {
 struct AccentPhrase {
     moras: Vec<Mora>,
     accent: usize,
+    pause_mora: Nullable<Mora>,
+    is_interrogative: bool,
 }
 
 impl AccentPhrase {
@@ -37,16 +39,62 @@ impl AccentPhrase {
             };
             aps.push(Self::from_node(&node, p_mora));
         }
-        aps
+        for i in (1..aps.len()).rev() {
+            match aps[i].moras.len() {
+                0 => {
+                    aps[i-1].pause_mora = aps[i].pause_mora.clone();
+                    aps[i-1].is_interrogative = aps[i].is_interrogative.clone();
+                },
+                _ => {
+                    ()
+                }
+            }
+        }
+        aps.into_iter().filter(|ap| ap.moras.len() > 0).collect()
     }
     fn from_node(
         node: &jpreprocess_njd::NJDNode,
         p_mora: Option<&Mora>,
     ) -> Self {
         let pron = node.get_pron();
+        let mut pau_count: usize = 0;
+        let mut is_interrogative = false;
+        let moras = Mora::from_pron(pron, p_mora).into_iter().filter(|mora|
+            match mora {
+                mora if mora.vowel == "pau".to_string() => {
+                    pau_count += 1;
+                    false
+                },
+                mora if mora.vowel == "Question".to_string() => {
+                    pau_count += 1;
+                    is_interrogative = true;
+                    false
+                },
+                _ => {
+                    true
+                },
+            }
+        ).collect();
+        let pause_mora = match pau_count {
+            0 => {
+                Nullable::null()
+            },
+            _ => {
+                Nullable::value(Mora{
+                    text: "、".to_string(),
+                    consonant: Nullable::null(),
+                    consonant_length: Nullable::null(),
+                    vowel: "pau".to_string(),
+                    vowel_length: pau_count as f32,
+                    pitch: 0.0,
+                })
+            },
+        };
         Self {
-            moras: Mora::from_pron(pron, p_mora),
+            moras: moras,
             accent: pron.accent,
+            pause_mora: pause_mora,
+            is_interrogative: is_interrogative,
         }
     }
 }
@@ -265,8 +313,8 @@ impl Mora {
             Kwa => {("クヮ", "a", Some("kw"))},
             Xwa => {("ヮ", "a", Some("xw"))},
             Xke => {("ヶ", "e", Some("xk"))},
-            Touten => unreachable!(),
-            Question => unreachable!(),
+            Touten => {("、", "pau", None)},
+            Question => {("？", "Question", None)},
         };
         let (consonant, consonant_length) = match cons {
             None => {
