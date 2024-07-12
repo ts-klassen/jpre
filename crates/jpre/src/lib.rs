@@ -123,12 +123,14 @@ impl Mora {
                             let mut m = m.clone();
                             m.consonant = Nullable::null();
                             m.consonant_length = Nullable::null();
+                            m.text = "ー".to_string();
                             m
                         },
                         (_, Some(m)) => {
                             let mut m = m.clone();
                             m.consonant = Nullable::null();
                             m.consonant_length = Nullable::null();
+                            m.text = "ー".to_string();
                             m
                         },
                         (None, None) => {
