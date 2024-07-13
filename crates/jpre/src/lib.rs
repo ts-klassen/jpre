@@ -53,7 +53,14 @@ impl AccentPhrase {
                 }
             }
         }
-        aps.into_iter().filter(|ap| ap.moras.len() > 0).collect()
+        aps = aps.into_iter().filter(|ap| ap.moras.len() > 0).collect();
+        aps.into_iter().map(|ap| {
+            let mut ap = ap;
+            if ap.accent <= 0 || ap.moras.len() < ap.accent {
+                ap.accent = ap.moras.len();
+            }
+            ap
+        }).collect()
     }
     fn from_node(
         node: &jpreprocess_njd::NJDNode,

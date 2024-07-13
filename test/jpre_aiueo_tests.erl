@@ -38,8 +38,8 @@ normalize_json(List) when is_list(List) ->
 normalize_json(Other) ->
     Other.
 
-normalize_accent_phrase(#{<<"moras">>:=M,<<"pause_mora">>:=PM}) ->
-    #{
+normalize_accent_phrase(AP=#{<<"moras">>:=M,<<"pause_mora">>:=PM}) ->
+    AP#{
         <<"moras">> => normalize_moras(M)
       , <<"pause_mora">> => normalize_mora(PM)
     }.
@@ -1513,21 +1513,24 @@ const_accent_phrases() ->
               <<"text">> => <<227,130,175>>,
               <<"vowel">> => <<"u">>}],
        <<"pause_mora">> => null},
-     #{<<"moras">> => [#{<<"consonant">> => <<"w">>,
+     #{<<"accent">> => 1,<<"is_interrogative">> => false,
+       <<"moras">> => [#{<<"consonant">> => <<"w">>,
                           <<"text">> => <<227,131,174>>,
                           <<"vowel">> => <<"a">>}],
                    <<"pause_mora">> =>
                        #{<<"consonant">> => null,
                          <<"text">> => <<227,128,129>>,
                          <<"vowel">> => <<"pau">>}},
-     #{<<"moras">> => [#{<<"consonant">> => <<"w">>,
+     #{<<"accent">> => 1,<<"is_interrogative">> => false,
+       <<"moras">> => [#{<<"consonant">> => <<"w">>,
                           <<"text">> => <<227,131,174>>,
                           <<"vowel">> => <<"a">>}],
                    <<"pause_mora">> =>
                        #{<<"consonant">> => null,
                          <<"text">> => <<227,128,129>>,
                          <<"vowel">> => <<"pau">>}},
-     #{<<"moras">> => [#{<<"consonant">> => <<"k">>,
+     #{<<"accent">> => 1,<<"is_interrogative">> => false,
+       <<"moras">> => [#{<<"consonant">> => <<"k">>,
                           <<"text">> => <<227,131,182>>,
                           <<"vowel">> => <<"a">>}],
                    <<"pause_mora">> => null}].
