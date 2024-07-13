@@ -3,7 +3,9 @@ use rustler::{NifResult, NifMap, NifUntaggedEnum, Atom};
 use jpreprocess_core::pronunciation;
 
 rustler::init!("jpre", [
-        accent_phrases,
+        normal_detail,
+        dirty_cpu_detail,
+        dirty_io_detail,
     ]);
 
 mod atoms {
@@ -351,9 +353,31 @@ impl<T> Nullable<T> {
     }
 }
 
+#[derive(Debug, NifMap, Clone)]
+struct Detail {
+    accent_phrases: Vec<AccentPhrase>,
+}
+
 
 #[rustler::nif]
-fn accent_phrases(text: String, opt: Opt) -> NifResult<Vec<AccentPhrase>> {
+fn normal_detail(text: String, opt: Opt) -> NifResult<Detail> {
+    detail(text, opt)
+}
+
+
+#[rustler::nif(schedule = "DirtyCpu")]
+fn dirty_cpu_detail(text: String, opt: Opt) -> NifResult<Detail> {
+    detail(text, opt)
+}
+
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn dirty_io_detail(text: String, opt: Opt) -> NifResult<Detail> {
+    detail(text, opt)
+}
+
+
+fn detail(text: String, opt: Opt) -> NifResult<Detail> {
     use jpreprocess::*;
     let config = JPreprocessConfig {
         dictionary: SystemDictionaryConfig::File(opt.dict.into()),
@@ -364,7 +388,9 @@ fn accent_phrases(text: String, opt: Opt) -> NifResult<Vec<AccentPhrase>> {
     let mut njd = jpreprocess.text_to_njd(&text).unwrap();
     njd.preprocess(); // not sure if I should do this or not...
 
-    Ok(AccentPhrase::from_njd(&njd))
+    Ok(Detail{
+        accent_phrases: AccentPhrase::from_njd(&njd)
+    })
 }
 
 //# MEMO: using user_dictionary
