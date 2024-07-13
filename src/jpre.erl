@@ -17,6 +17,7 @@
 
 -type opt() :: #{
         dict := unicode:unicode_binary()
+      , find_missing_words := boolean()
       , schedule => dirty_cpu | normal | dirty_io
     }.
 
@@ -38,6 +39,7 @@
 
 -type detail() :: #{
         accent_phrases := [accent_phrase()]
+      , missing_words := [unicode:unicode_binary()]
     }.
 
 init() ->
@@ -52,6 +54,7 @@ detail(Text) ->
     Opt = #{
         dict => unicode:characters_to_binary(DictPath)
       , schedule => dirty_cpu
+      , find_missing_words => false
     },
     detail(Text, Opt).
 

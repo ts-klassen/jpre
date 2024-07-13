@@ -16,7 +16,8 @@ mod atoms {
 
 #[derive(Debug, NifMap, Clone)]
 struct Opt {
-    dict: String
+    dict: String,
+    find_missing_words: bool,
 }
 
 #[derive(Debug, NifMap, Clone)]
@@ -356,6 +357,7 @@ impl<T> Nullable<T> {
 #[derive(Debug, NifMap, Clone)]
 struct Detail {
     accent_phrases: Vec<AccentPhrase>,
+    missing_words: Vec<String>,
 }
 
 
@@ -386,10 +388,28 @@ fn detail(text: String, opt: Opt) -> NifResult<Detail> {
     let jpreprocess = JPreprocess::from_config(config).unwrap();
 
     let mut njd = jpreprocess.text_to_njd(&text).unwrap();
-    njd.preprocess(); // not sure if I should do this or not...
+    let missing_words = if opt.find_missing_words {
+        let mut words = vec![];
+        for node in &njd.nodes {
+            match node.get_read() {
+                None => {
+                    words.push(node.get_string().to_string());
+                },
+                _ => {
+                    ()
+                }
+            }
+        }
+        words
+    }
+    else {
+        vec![]
+    };
+    njd.preprocess();
 
     Ok(Detail{
-        accent_phrases: AccentPhrase::from_njd(&njd)
+        accent_phrases: AccentPhrase::from_njd(&njd),
+        missing_words: missing_words,
     })
 }
 
