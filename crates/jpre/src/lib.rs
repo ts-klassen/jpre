@@ -40,7 +40,24 @@ impl AccentPhrase {
                     None
                 },
             };
-            aps.push(Self::from_node(&node, p_mora));
+            let chain_flag = node.get_chain_flag();
+            let accent_phrase = Self::from_node(&node, p_mora);
+            match chain_flag {
+                Some(true) => {
+                    let last = aps.last_mut().unwrap();
+                    match last.pause_mora {
+                        Nullable::Null(_) => {
+                            last.append(&accent_phrase);
+                        },
+                        _ => {
+                            aps.push(accent_phrase);
+                        }
+                    };
+                },
+                _ => {
+                    aps.push(accent_phrase);
+                }
+            };
         }
         for i in (1..aps.len()).rev() {
             match aps[i].moras.len() {
@@ -54,6 +71,14 @@ impl AccentPhrase {
             }
         }
         aps = aps.into_iter().filter(|ap| ap.moras.len() > 0).collect();
+        match aps.last_mut() {
+            Some(ap) => {
+                ap.pause_mora = Nullable::null();
+            },
+            None => {
+                ()
+            },
+        };
         aps.into_iter().map(|ap| {
             let mut ap = ap;
             if ap.accent <= 0 || ap.moras.len() < ap.accent {
@@ -106,6 +131,12 @@ impl AccentPhrase {
             pause_mora: pause_mora,
             is_interrogative: is_interrogative,
         }
+    }
+    fn append(&mut self, sub: &Self) {
+        let mut sub = sub.clone();
+        self.moras.append(&mut sub.moras);
+        self.pause_mora = sub.pause_mora;
+        self.is_interrogative = sub.is_interrogative;
     }
 }
 
@@ -336,11 +367,19 @@ impl Mora {
                 (Nullable::value(costr.to_string()), Nullable::value(0.0))
             },
         };
+        let vowel = match mora.is_voiced {
+            true => {
+                vowel.to_string()
+            },
+            false => {
+                vowel.to_uppercase()
+            },
+        };
         Self {
             text: text.to_string(),
             consonant: consonant,
             consonant_length: consonant_length,
-            vowel: vowel.to_string(),
+            vowel: vowel,
             vowel_length: 0.0,
             pitch: 0.0,
         }
@@ -413,6 +452,7 @@ fn detail(text: String, opt: Opt) -> NifResult<Detail> {
         vec![]
     };
     njd.preprocess();
+    jpreprocess_njd::accent_phrase::njd_set_accent_phrase(&mut njd);
 
     Ok(Detail{
         accent_phrases: AccentPhrase::from_njd(&njd),
