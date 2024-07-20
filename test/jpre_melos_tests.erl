@@ -28,7 +28,7 @@ accent_phrases_to_kana(Text) ->
             <<MorasKana:MorasKanaSize/binary, _/binary>> = MorasText,
             Accent = integer_to_binary(AccentInt),
             <<Base/binary, MorasKana/binary, PauseMoraText/binary, Accent/binary>>
-    end, <<>>, jpre:accent_phrases(Text)).
+    end, <<>>, jpre:accent_phrases(Text, opt())).
 moras_to_kana(Moras) ->
     lists:foldl(fun
         (Mora, Base) ->
@@ -43,6 +43,35 @@ mora_to_kana(#{vowel:=Vowel, consonant:=null}) ->
     <<Vowel/binary, ",">>;
 mora_to_kana(#{vowel:=Vowel, consonant:=Consonant}) ->
     <<Consonant/binary, ".", Vowel/binary, ",">>.
+
+
+opt() ->
+    Opt = jpre:get_default_opt(),
+    Wo = [
+        <<"を"/utf8>>
+      , <<"179"/utf8>>
+      , <<"179"/utf8>>
+      , <<"3913"/utf8>>
+      , <<"助詞"/utf8>>
+      , <<"格助詞"/utf8>>
+      , <<"一般"/utf8>>
+      , <<"*"/utf8>>
+      , <<"*"/utf8>>
+      , <<"*"/utf8>>
+      , <<"を"/utf8>>
+      , <<"ヲ"/utf8>>
+      , <<"オ"/utf8>>
+      , <<"0/1"/utf8>>
+      , <<"動詞%F5/名詞%F1"/utf8>>
+    ],
+    Opt#{
+        user_dict => [Wo|jpre_user_dict:simple(user_dict())]
+    }.
+
+
+user_dict() ->
+    [
+    ].
 
 
 % 太宰 治『走れメロス』

@@ -6,6 +6,7 @@ rustler::init!("jpre", [
         normal_detail,
         dirty_cpu_detail,
         dirty_io_detail,
+        normalize,
     ]);
 
 mod atoms {
@@ -18,6 +19,7 @@ mod atoms {
 struct Opt {
     dict: String,
     find_missing_words: bool,
+    user_dict: Vec<Vec<String>>,
 }
 
 #[derive(Debug, NifMap, Clone)]
@@ -408,6 +410,12 @@ struct Detail {
 
 
 #[rustler::nif]
+fn normalize(text: String) -> String {
+    jpreprocess::normalize_text_for_naist_jdic(text.as_str())
+}
+
+
+#[rustler::nif]
 fn normal_detail(text: String, opt: Opt) -> NifResult<Detail> {
     detail(text, opt)
 }
@@ -427,11 +435,11 @@ fn dirty_io_detail(text: String, opt: Opt) -> NifResult<Detail> {
 
 fn detail(text: String, opt: Opt) -> NifResult<Detail> {
     use jpreprocess::*;
-    let config = JPreprocessConfig {
-        dictionary: SystemDictionaryConfig::File(opt.dict.into()),
-        user_dictionary: None,
-    };
-    let jpreprocess = JPreprocess::from_config(config).unwrap();
+    let user_dictionary = get_user_dictionary(opt.clone());
+    let dictionary = SystemDictionaryConfig::File(opt.dict.into())
+        .load().unwrap();
+    let jpreprocess = JPreprocess::with_dictionaries(
+        dictionary, user_dictionary);
 
     let mut njd = jpreprocess.text_to_njd(&text).unwrap();
     let missing_words = if opt.find_missing_words {
@@ -458,6 +466,36 @@ fn detail(text: String, opt: Opt) -> NifResult<Detail> {
         accent_phrases: AccentPhrase::from_njd(&njd),
         missing_words: missing_words,
     })
+}
+
+fn get_user_dictionary(opt: Opt) ->
+        Option<jpreprocess::UserDictionary>
+    {
+    use jpreprocess_dictionary::serializer::jpreprocess::JPreprocessSerializer;
+    use jpreprocess_dictionary_builder::ipadic_builder::IpadicBuilder;
+    if opt.user_dict.len() == 0 {
+        None
+    }
+    else {
+
+        let mut rows = opt.user_dict;
+        for row in &mut rows {
+            row[0] = jpreprocess::normalize_text_for_naist_jdic(row[0].as_str());
+        }
+        rows.sort_by_key(|row| row[0].clone());
+        let rows = rows.iter().map(|row| row.iter().map(|s| s as &str).collect()).collect();
+
+        let dict = IpadicBuilder::new(Box::new(JPreprocessSerializer))
+            .build_user_dict_from_data(&rows);
+        match dict {
+            Ok(user_dict) => {
+                Some(user_dict)
+            },
+            _ => {
+                None
+            }
+        }
+    }
 }
 
 //# MEMO: using user_dictionary

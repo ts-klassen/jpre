@@ -5,6 +5,8 @@
       , accent_phrases/2
       , detail/1
       , detail/2
+      , normalize/1
+      , get_default_opt/0
     ]).
 
 -export_type([
@@ -17,6 +19,7 @@
 
 -type opt() :: #{
         dict := unicode:unicode_binary()
+      , user_dict := [[unicode:unicode_binary()]]
       , find_missing_words := boolean()
       , schedule => dirty_cpu | normal | dirty_io
     }.
@@ -47,16 +50,20 @@ init() ->
     LibName = "libjpre",
     erlang:load_nif(filename:append(PrivDir, LibName), 0).
 
--spec detail(unicode:unicode_binary()) -> detail().
-detail(Text) ->
+-spec get_default_opt() -> opt().
+get_default_opt() ->
     PrivDir = code:priv_dir(?MODULE),
     DictPath = filename:append(PrivDir, "naist-jdic"),
-    Opt = #{
+    #{
         dict => unicode:characters_to_binary(DictPath)
+      , user_dict => []
       , schedule => dirty_cpu
       , find_missing_words => false
-    },
-    detail(Text, Opt).
+    }.
+
+-spec detail(unicode:unicode_binary()) -> detail().
+detail(Text) ->
+    detail(Text, get_default_opt()).
 
 -spec detail(unicode:unicode_binary(), opt()) -> detail().
 detail(Text, Opt=#{schedule:=normal}) ->
@@ -85,4 +92,10 @@ accent_phrases(Text) ->
 -spec accent_phrases(unicode:unicode_binary(), opt()) -> [accent_phrase()].
 accent_phrases(Text, Opt) ->
     maps:get(accent_phrases, detail(Text, Opt)).
+
+
+-spec normalize(unicode:unicode_binary()) -> unicode:unicode_binary().
+normalize(Arg1) ->
+    erlang:nif_error(nif_module_unavailable, [Arg1]).
+
 

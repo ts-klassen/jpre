@@ -5,7 +5,7 @@ JPRE_COMPILE_PWD=`pwd`
 cd `dirname $0`
 
 if [ ! -d ./priv/naist-jdic ]; then
-    mkdir ./priv;
+    mkdir -p ./priv;
     cd priv;
     wget https://github.com/jpreprocess/jpreprocess/releases/download/v0.9.1/naist-jdic-jpreprocess.tar.gz;
     tar -xf naist-jdic-jpreprocess.tar.gz;
