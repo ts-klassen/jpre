@@ -9,6 +9,12 @@
       , get_default_opt/0
     ]).
 
+-export([
+        set_num/1
+      , get_num/1
+      , add_num/2
+    ]).
+
 -export_type([
         opt/0
       , mora/0
@@ -98,4 +104,12 @@ accent_phrases(Text, Opt) ->
 normalize(Arg1) ->
     erlang:nif_error(nif_module_unavailable, [Arg1]).
 
+set_num(Arg1) ->
+    erlang:nif_error(nif_module_unavailable, [Arg1]).
+
+get_num(Arg1) ->
+    erlang:nif_error(nif_module_unavailable, [Arg1]).
+
+add_num(Arg1, Arg2) ->
+    erlang:nif_error(nif_module_unavailable, [Arg1, Arg2]).
 

@@ -1,13 +1,50 @@
 extern crate rustler;
-use rustler::{NifResult, NifMap, NifUntaggedEnum, Atom};
+use rustler::{NifResult, NifMap, NifUntaggedEnum, Atom, ResourceArc};
 use jpreprocess_core::pronunciation;
+use std::sync::RwLock;
 
 rustler::init!("jpre", [
         normal_detail,
         dirty_cpu_detail,
         dirty_io_detail,
         normalize,
-    ]);
+        set_num,
+        get_num,
+        add_num,
+    ],
+    load = load
+    );
+
+fn load(env: rustler::Env, _:rustler::Term) -> bool {
+    rustler::resource!(DictResource, env);
+    true
+}
+
+pub struct DictResource {
+    payload: RwLock<u32>
+}
+// ResourceArc::new(DictResource{payload: RwLock::new(1)})
+// res.payload.read()
+
+
+#[rustler::nif]
+fn set_num(num: u32) -> ResourceArc<DictResource> {
+    ResourceArc::new(DictResource{payload: RwLock::new(num)})
+}
+
+#[rustler::nif]
+fn get_num(res: ResourceArc<DictResource>) -> u32 {
+    *res.payload.read().unwrap()
+}
+
+#[rustler::nif]
+fn add_num(num: u32, res: ResourceArc<DictResource>) -> ResourceArc<DictResource> {
+    {
+        let mut x = res.payload.write().unwrap();
+        *x += num;
+    }
+    res
+}
 
 mod atoms {
     rustler::atoms! {

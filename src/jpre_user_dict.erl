@@ -6,6 +6,8 @@
 
 simple(List) when is_list(List) ->
     lists:map(fun simple/1, List);
+simple(CSV) when is_binary(CSV) ->
+    binary:split(CSV, <<",">>, [global]);
 simple({Text, Cost, Kana, Accent}) when is_integer(Cost) ->
     simple({Text, integer_to_binary(Cost), Kana, Accent});
 simple({Text, Cost, Kana, Accent}) when is_integer(Accent) ->
