@@ -7,6 +7,7 @@ rustler::init!("jpre", [
         dirty_cpu_detail,
         dirty_io_detail,
         normalize,
+        validate_user_dict,
     ]);
 
 mod atoms {
@@ -412,6 +413,48 @@ struct Detail {
 #[rustler::nif]
 fn normalize(text: String) -> String {
     jpreprocess::normalize_text_for_naist_jdic(text.as_str())
+}
+
+
+// Validate rows for user dictionary. Returns `true` when all rows are valid,
+// `false` otherwise. No message is printed even if some rows are invalid.
+#[rustler::nif]
+fn validate_user_dict(rows: Vec<Vec<String>>) -> bool {
+    use jpreprocess_core::word_entry::WordEntry;
+
+    // Normalize surface strings (same as in get_user_dictionary)
+    let mut rows = rows;
+
+    for row in &mut rows {
+        if let Some(surface) = row.first_mut() {
+            *surface = jpreprocess::normalize_text_for_naist_jdic(surface.as_str());
+        }
+    }
+
+    rows.into_iter().all(|row| {
+        match row.len() {
+            3 => {
+                // Simple user-dict row: [surface, POS, reading]
+                let mut details: Vec<&str> = Vec::with_capacity(13);
+                details.push(row[1].as_str()); // POS
+                for _ in 0..5 {
+                    details.push("*");
+                }
+                details.push(row[0].as_str()); // Base form (orig)
+                details.push(row[2].as_str()); // Reading
+                details.push("*");             // Pronunciation
+                details.resize(13, "");
+                WordEntry::load(&details).is_ok()
+            }
+            l if l >= 13 => {
+                // Detailed row: columns 4.. contain the details section.
+                let mut details: Vec<&str> = row.iter().skip(4).map(|s| s.as_str()).collect();
+                details.resize(13, "");
+                WordEntry::load(&details).is_ok()
+            }
+            _ => false, // any other length is invalid
+        }
+    })
 }
 
 

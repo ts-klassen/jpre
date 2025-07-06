@@ -6,6 +6,7 @@
       , detail/1
       , detail/2
       , normalize/1
+      , validate_user_dict/1
       , get_default_opt/0
     ]).
 
@@ -97,5 +98,13 @@ accent_phrases(Text, Opt) ->
 -spec normalize(unicode:unicode_binary()) -> unicode:unicode_binary().
 normalize(Arg1) ->
     erlang:nif_error(nif_module_unavailable, [Arg1]).
+
+
+-spec validate_user_dict([[unicode:unicode_binary()]]) -> boolean().
+validate_user_dict(Rows) ->
+    validate_user_dict_nif(Rows).
+
+validate_user_dict_nif(_) ->
+    erlang:nif_error(nif_module_unavailable, []).
 
 
