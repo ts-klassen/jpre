@@ -1,6 +1,7 @@
 extern crate rustler;
 use rustler::{NifResult, NifMap, NifUntaggedEnum, Atom};
 use jpreprocess_core::pronunciation;
+use jpreprocess_core::accent_rule::ChainRules;
 
 rustler::init!("jpre", [
         normal_detail,
@@ -432,7 +433,8 @@ fn validate_user_dict(rows: Vec<Vec<String>>) -> bool {
     }
 
     rows.into_iter().all(|row| {
-        match row.len() {
+        // First, validate that word details can be loaded – existing behaviour.
+        let word_entry_ok = match row.len() {
             3 => {
                 // Simple user-dict row: [surface, POS, reading]
                 let mut details: Vec<&str> = Vec::with_capacity(13);
@@ -453,8 +455,42 @@ fn validate_user_dict(rows: Vec<Vec<String>>) -> bool {
                 WordEntry::load(&details).is_ok()
             }
             _ => false, // any other length is invalid
-        }
+        };
+
+        // Additional validation for accent chain rule (column 15; index 14) when present.
+        let accent_ok = if row.len() >= 15 {
+            accent_rules_are_valid(row[14].as_str())
+        } else {
+            true
+        };
+
+        word_entry_ok && accent_ok
     })
+}
+
+// Determine whether an accent chain-rule string is fully valid.
+// Every fragment is parsed with jpreprocess_core::accent_rule::ChainRules::new().
+// If that call produces a ChainRules with no actual rule set, we regard the
+// fragment as invalid because the inner parser would have emitted the warning
+// and skipped it.
+fn accent_rules_are_valid(rules: &str) -> bool {
+    // No rule specified.
+    if rules.is_empty() || rules == "*" {
+        return true;
+    }
+
+    rules.split('/')
+        .all(|frag| {
+            // Handle possible empty fragment (e.g., trailing slash)
+            if frag.is_empty() {
+                return true;
+            }
+
+            let cr = ChainRules::new(frag);
+
+            cr.default.is_some() || cr.doushi.is_some() || cr.joshi.is_some()
+                || cr.keiyoushi.is_some() || cr.meishi.is_some()
+        })
 }
 
 
