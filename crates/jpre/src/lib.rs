@@ -7,6 +7,7 @@ rustler::init!("jpre", [
         dirty_cpu_detail,
         dirty_io_detail,
         normalize,
+        validate_user_dict,
     ]);
 
 mod atoms {
@@ -412,6 +413,32 @@ struct Detail {
 #[rustler::nif]
 fn normalize(text: String) -> String {
     jpreprocess::normalize_text_for_naist_jdic(text.as_str())
+}
+
+
+// Validate rows for user dictionary. Returns `true` when all rows are valid,
+// `false` otherwise. No message is printed even if some rows are invalid.
+#[rustler::nif]
+fn validate_user_dict(rows: Vec<Vec<String>>) -> bool {
+    use jpreprocess_dictionary_builder::ipadic_builder::IpadicBuilder;
+    use jpreprocess_dictionary::serializer::jpreprocess::JPreprocessSerializer;
+
+    // Normalize surface strings (same as in get_user_dictionary)
+    let mut rows = rows;
+
+    for row in &mut rows {
+        if let Some(surface) = row.first_mut() {
+            *surface = jpreprocess::normalize_text_for_naist_jdic(surface.as_str());
+        }
+    }
+
+    // Convert to Vec<Vec<&str>> expected by the builder.
+    let rows_ref: Vec<Vec<&str>> =
+        rows.iter().map(|row| row.iter().map(|s| s.as_str()).collect()).collect();
+
+    let builder = IpadicBuilder::new(Box::new(JPreprocessSerializer));
+
+    builder.build_user_dict_from_data(&rows_ref).is_ok()
 }
 
 
