@@ -432,16 +432,28 @@ fn validate_user_dict(rows: Vec<Vec<String>>) -> bool {
     }
 
     rows.into_iter().all(|row| {
-        if row.len() < 5 {
-            return false;
+        match row.len() {
+            3 => {
+                // Simple user-dict row: [surface, POS, reading]
+                let mut details: Vec<&str> = Vec::with_capacity(13);
+                details.push(row[1].as_str()); // POS
+                for _ in 0..5 {
+                    details.push("*");
+                }
+                details.push(row[0].as_str()); // Base form (orig)
+                details.push(row[2].as_str()); // Reading
+                details.push("*");             // Pronunciation
+                details.resize(13, "");
+                WordEntry::load(&details).is_ok()
+            }
+            l if l >= 13 => {
+                // Detailed row: columns 4.. contain the details section.
+                let mut details: Vec<&str> = row.iter().skip(4).map(|s| s.as_str()).collect();
+                details.resize(13, "");
+                WordEntry::load(&details).is_ok()
+            }
+            _ => false, // any other length is invalid
         }
-
-        // According to dictionary spec, fields from index 4 are the word details that
-        // JPreprocess expects (POS, ctype, ...)
-        let mut details: Vec<&str> = row.iter().skip(4).map(|s| s.as_str()).collect();
-        details.resize(13, "");
-
-        WordEntry::load(&details).is_ok()
     })
 }
 
