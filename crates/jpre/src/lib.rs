@@ -420,8 +420,7 @@ fn normalize(text: String) -> String {
 // `false` otherwise. No message is printed even if some rows are invalid.
 #[rustler::nif]
 fn validate_user_dict(rows: Vec<Vec<String>>) -> bool {
-    use jpreprocess_dictionary_builder::ipadic_builder::IpadicBuilder;
-    use jpreprocess_dictionary::serializer::jpreprocess::JPreprocessSerializer;
+    use jpreprocess_core::word_entry::WordEntry;
 
     // Normalize surface strings (same as in get_user_dictionary)
     let mut rows = rows;
@@ -432,13 +431,18 @@ fn validate_user_dict(rows: Vec<Vec<String>>) -> bool {
         }
     }
 
-    // Convert to Vec<Vec<&str>> expected by the builder.
-    let rows_ref: Vec<Vec<&str>> =
-        rows.iter().map(|row| row.iter().map(|s| s.as_str()).collect()).collect();
+    rows.into_iter().all(|row| {
+        if row.len() < 5 {
+            return false;
+        }
 
-    let builder = IpadicBuilder::new(Box::new(JPreprocessSerializer));
+        // According to dictionary spec, fields from index 4 are the word details that
+        // JPreprocess expects (POS, ctype, ...)
+        let mut details: Vec<&str> = row.iter().skip(4).map(|s| s.as_str()).collect();
+        details.resize(13, "");
 
-    builder.build_user_dict_from_data(&rows_ref).is_ok()
+        WordEntry::load(&details).is_ok()
+    })
 }
 
 
