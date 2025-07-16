@@ -1,6 +1,6 @@
 {application, jpre,
  [{description, "An OTP library"},
-  {vsn, "0.7.0"},
+  {vsn, "0.7.1"},
   {registered, []},
   {applications,
    [kernel,

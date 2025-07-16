@@ -7,6 +7,9 @@ rustler::init!("jpre", [
         normal_detail,
         dirty_cpu_detail,
         dirty_io_detail,
+        normal_batch_detail,
+        dirty_cpu_batch_detail,
+        dirty_io_batch_detail,
         normalize,
         validate_user_dict,
     ]);
@@ -509,6 +512,64 @@ fn dirty_cpu_detail(text: String, opt: Opt) -> NifResult<Detail> {
 #[rustler::nif(schedule = "DirtyIo")]
 fn dirty_io_detail(text: String, opt: Opt) -> NifResult<Detail> {
     detail(text, opt)
+}
+
+
+// ------------------------------
+// Batch detail (multiple texts)
+// ------------------------------
+
+#[rustler::nif]
+fn normal_batch_detail(texts: Vec<String>, opt: Opt) -> NifResult<Vec<Detail>> {
+    batch_detail(texts, opt)
+}
+
+#[rustler::nif(schedule = "DirtyCpu")]
+fn dirty_cpu_batch_detail(texts: Vec<String>, opt: Opt) -> NifResult<Vec<Detail>> {
+    batch_detail(texts, opt)
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn dirty_io_batch_detail(texts: Vec<String>, opt: Opt) -> NifResult<Vec<Detail>> {
+    batch_detail(texts, opt)
+}
+
+fn batch_detail(texts: Vec<String>, opt: Opt) -> NifResult<Vec<Detail>> {
+    use jpreprocess::*;
+
+    // Load dictionaries once per batch for efficiency.
+    let user_dictionary = get_user_dictionary(opt.clone());
+    let dictionary = SystemDictionaryConfig::File(opt.dict.clone().into())
+        .load()
+        .unwrap();
+    let jp = JPreprocess::with_dictionaries(dictionary, user_dictionary);
+
+    let mut results: Vec<Detail> = Vec::with_capacity(texts.len());
+
+    for text in texts {
+        let mut njd = jp.text_to_njd(&text).unwrap();
+
+        // Collect missing words if requested.
+        let missing_words = if opt.find_missing_words {
+            njd.nodes
+                .iter()
+                .filter(|n| n.get_read().is_none())
+                .map(|n| n.get_string().to_string())
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        njd.preprocess();
+        jpreprocess_njd::accent_phrase::njd_set_accent_phrase(&mut njd);
+
+        results.push(Detail {
+            accent_phrases: AccentPhrase::from_njd(&njd),
+            missing_words,
+        });
+    }
+
+    Ok(results)
 }
 
 
