@@ -3,10 +3,6 @@
 -export([
         accent_phrases/1
       , accent_phrases/2
-      , batch_accent_phrases/1
-      , batch_accent_phrases/2
-      , batch_detail/1
-      , batch_detail/2
       , detail/1
       , detail/2
       , normalize/1
@@ -97,44 +93,6 @@ accent_phrases(Text) ->
 -spec accent_phrases(unicode:unicode_binary(), opt()) -> [accent_phrase()].
 accent_phrases(Text, Opt) ->
     maps:get(accent_phrases, detail(Text, Opt)).
-
-
-%%--------------------------------------------------------------------
-%% Batch processing
-%%--------------------------------------------------------------------
-
--spec batch_detail([unicode:unicode_binary()]) -> [detail()].
-batch_detail(Texts) ->
-    batch_detail(Texts, get_default_opt()).
-
--spec batch_detail([unicode:unicode_binary()], opt()) -> [detail()].
-batch_detail(Texts, Opt=#{schedule:=normal}) ->
-    normal_batch_detail(Texts, Opt);
-batch_detail(Texts, Opt=#{schedule:=dirty_io}) ->
-    dirty_io_batch_detail(Texts, Opt);
-batch_detail(Texts, Opt) ->
-    dirty_cpu_batch_detail(Texts, Opt).
-
--spec normal_batch_detail([unicode:unicode_binary()], opt()) -> [detail()].
-normal_batch_detail(Arg1, Arg2) ->
-    erlang:nif_error(nif_module_unavailable, [Arg1, Arg2]).
-
--spec dirty_cpu_batch_detail([unicode:unicode_binary()], opt()) -> [detail()].
-dirty_cpu_batch_detail(Arg1, Arg2) ->
-    erlang:nif_error(nif_module_unavailable, [Arg1, Arg2]).
-
--spec dirty_io_batch_detail([unicode:unicode_binary()], opt()) -> [detail()].
-dirty_io_batch_detail(Arg1, Arg2) ->
-    erlang:nif_error(nif_module_unavailable, [Arg1, Arg2]).
-
-
--spec batch_accent_phrases([unicode:unicode_binary()]) -> [[accent_phrase()]].
-batch_accent_phrases(Texts) ->
-    batch_accent_phrases(Texts, get_default_opt()).
-
--spec batch_accent_phrases([unicode:unicode_binary()], opt()) -> [[accent_phrase()]].
-batch_accent_phrases(Texts, Opt) ->
-    [maps:get(accent_phrases, Det) || Det <- batch_detail(Texts, Opt)].
 
 
 -spec normalize(unicode:unicode_binary()) -> unicode:unicode_binary().
